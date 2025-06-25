@@ -43,7 +43,7 @@ aws eks update-kubeconfig --name o11y-cluster --region us-east-1
 
 ---
 
-## Deploying OpenTelemetry and Sample App
+## Deploying OpenTelemetry and Emmanuel Services App
 
 1. **Deploy OpenTelemetry Collector via Helm**:
 ```bash
@@ -54,7 +54,7 @@ helm install otel-collector -f helm/otel-collector/values.yaml open-telemetry/op
 
 2. **Deploy Sample Application**:
 ```bash
-kubectl apply -f manifests/workloads/sample-app.yaml
+kubectl apply -f manifests/workloads/emmanuel_services-app.yaml
 ```
 
 3. **Monitor in Splunk**:
