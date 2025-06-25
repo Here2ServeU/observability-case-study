@@ -1,0 +1,10 @@
+{
+  "title": "Sample App Performance",
+  "charts": [
+    {
+      "title": "Request Duration",
+      "metric": "latency",
+      "thresholds": [300, 500]
+    }
+  ]
+}

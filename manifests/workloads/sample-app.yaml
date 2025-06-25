@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emmanuel_services-app
+  labels:
+    app: emmanuel_services-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: emmanuel_services-app
+  template:
+    metadata:
+      labels:
+        app: emmanuel_services-app
+    spec:
+      containers:
+      - name: app
+        image: ghcr.io/your-org/emmanuel_services-app:latest
+        ports:
+        - containerPort: 3000
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector:4317"
+        - name: OTEL_SERVICE_NAME
+          value: "sample-app"
