@@ -1,0 +1,26 @@
+mode: deployment
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+  processors:
+    batch:
+
+  exporters:
+    splunk_hec:
+      token: ${SPLUNK_HEC_TOKEN}
+      endpoint: https://ingest.<REALM>.signalfx.com/v1/log
+      source: otel
+      sourcetype: _json
+
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [splunk_hec]
+

@@ -1,0 +1,26 @@
+mode: deployment
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+  processors:
+    batch:
+
+  exporters:
+    splunk_hec:
+      token: ${SPLUNK_HEC_TOKEN}
+      endpoint: http://host.docker.internal:8088/services/collector
+      source: otel
+      sourcetype: _json
+
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [batch]
+        exporters: [splunk_hec]
+
