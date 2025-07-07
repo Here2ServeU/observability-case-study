@@ -1,96 +1,210 @@
-# Full-Stack Observability with OpenTelemetry, Splunk, and Terraform
+# Step-by-Step Deployment Guide: Full-Stack Observability with OpenTelemetry, Splunk, and Terraform
 
-## STAR-Based Case Study
-
-### Situation
-
-Modern distributed systems deployed on Kubernetes face significant challenges in debugging, performance monitoring, and root cause analysis. Most teams struggle with setting up reliable observability pipelines that cover infrastructure, services, and user experience.
-
-There was a need for an end-to-end solution that provides full-stack observability—including distributed tracing, metrics, logs, and real user monitoring—across microservices running in a Kubernetes environment.
-
-### Task
-
-Design and deploy a production-grade observability platform that:
-- Instruments microservices with OpenTelemetry
-- Integrates with Splunk Observability Cloud for centralized APM, RUM, and infra metrics
-- Uses Terraform for provisioning scalable EKS clusters
-- Leverages Helm and ArgoCD for GitOps-based deployment and configuration
-- Demonstrates local and cloud-based observability workflows
-- Serves as a reusable case study for interviews and employer-readiness
-
-### Action
-
-#### 1. Infrastructure Provisioning with Terraform
-- Created reusable Terraform scripts under `/terraform/` to provision:
-  - VPC, subnets, internet gateway
-  - EKS cluster and managed node groups
-  - IAM roles for service access
-- Configured AWS CLI, ran `terraform init` and `terraform apply`, then updated kubeconfig
-
-#### 2. Observability Stack Deployment
-- Deployed OpenTelemetry Collector via Helm with custom values
-- Installed sample app `emmanuel_services-app.yaml` to generate telemetry data
-- Connected OTel Collector to:
-  - Splunk Observability Cloud (via `values-cloud.yaml`)
-  - Local Splunk instance (via `values-local.yaml` for dev/testing)
-
-#### 3. Local Splunk Deployment for Testing
-- Used Docker to run Splunk for local APM simulation
-- Configured OTel Collector to forward data to `host.docker.internal:8088`
-- Enabled local trace/log validation without external cloud access
-
-#### 4. GitOps Integration
-- Prepared manifests and Helm values to be ArgoCD-compatible
-- Structured Git repository to support continuous deployment patterns
-
-#### 5. Dashboarding and Observability Features
-- Created Splunk dashboards to visualize:
-  - Distributed tracing
-  - SLO/RUM metrics
-  - Infrastructure and pod-level telemetry
-- Documented usage and configurations in `/dashboards` and `README.md`
-
-### Result
-
-- Achieved end-to-end observability from application to infrastructure within a Kubernetes environment.
-- Reduced Mean Time to Resolution (MTTR) by enabling:
-  - Real-time traces and logs
-  - Automatic metrics ingestion and correlation
-- Enabled repeatable infrastructure with Terraform and GitOps
-- Demonstrated platform readiness for enterprise-grade monitoring
-- Created a complete portfolio project that simulates real-world monitoring pipelines using OpenTelemetry and Splunk
+This guide walks you through deploying a full observability pipeline for microservices running in Kubernetes using OpenTelemetry, Splunk, and Terraform.
 
 ---
 
-## Mastery Development Plan
+## STAR Overview
 
-| Skill Area                 | Used | Next Mastery Step |
-|---------------------------|------|-------------------|
-| Infrastructure as Code    | ✔️   | Add Terragrunt for multi-env and modularity |
-| Kubernetes Observability  | ✔️   | Add Prometheus + Grafana for comparison and alerting |
-| OpenTelemetry Integration | ✔️   | Add custom SDK-based instrumentation for Node.js/Python |
-| CI/CD & GitOps            | ✔️   | Automate ArgoCD sync via GitHub Actions |
-| Splunk Observability      | ✔️   | Integrate detectors, alerting rules, and SLO burn rate dashboards |
-| Local Dev + Testing       | ✔️   | Add Docker Compose for full local observability test rig |
-| Secrets Management        | 🚧   | Integrate AWS Secrets Manager or Sealed Secrets for HEC tokens |
+**Situation**  
+Teams running microservices in Kubernetes often lack integrated visibility across logs, metrics, and traces. This limits their ability to detect issues early, reduce downtime, and improve system performance.
+
+**Task**  
+Build a production-like observability platform using OpenTelemetry, Splunk, and Terraform, enabling full-stack monitoring, distributed tracing, and GitOps-based deployment workflows.
+
+**Action & Result**  
+Each step below explains both what actions to take and how it contributes to building scalable and observable infrastructure. At the end of the process, you'll have a fully working observability platform with infrastructure as code, tracing, metrics, and monitoring dashboards.
+
+---
+
+## 1. Infrastructure Provisioning with Terraform
+
+**Action**
+
+### Prerequisites
+- AWS CLI installed and configured
+- Terraform v1.3+ installed
+- kubectl and Helm installed
+
+### Steps
+1. Clone the repository:
+```bash
+git clone https://github.com/Here2ServeU/observability-case-study
+cd observability-case-study/terraform
+```
+
+2. Configure AWS credentials:
+```bash
+aws configure
+```
+
+3. Initialize Terraform:
+```bash
+terraform init
+```
+
+4. Apply Terraform to provision the EKS cluster:
+```bash
+terraform apply
+```
+
+5. Update kubeconfig to access the cluster:
+```bash
+aws eks update-kubeconfig --name o11y-cluster --region us-east-1
+```
+
+**Result**  
+You now have a production-ready Kubernetes cluster provisioned with reusable Terraform scripts.
 
 ---
 
-## Suggested Next Steps
+## 2. Deploy OpenTelemetry Collector in Kubernetes
 
-- [ ] Integrate GitHub Actions to deploy Terraform and sync Helm changes via ArgoCD
-- [ ] Add OpenTelemetry SDK instrumentation for backend services (Node.js, Python)
-- [ ] Include production-ready alerting and SLO enforcement via Splunk detectors
-- [ ] Publish as a blog post or video walkthrough to explain real-world impact and architecture
-- [ ] Add usage documentation for new engineers (runbooks, dashboards, troubleshooting guide)
+**Action**
+
+### Steps
+1. Add the Helm chart repo for OpenTelemetry:
+```bash
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+helm repo update
+```
+
+2. Deploy the OpenTelemetry Collector:
+```bash
+helm install otel-collector -f helm/otel-collector/values.yaml open-telemetry/opentelemetry-collector
+```
+
+**Result**  
+The OpenTelemetry Collector is now ready to collect and export telemetry data to Splunk.
 
 ---
+
+## 3. Deploy a Sample Application
+
+**Action**
+
+### Steps
+1. Deploy a sample microservice to generate traces and metrics:
+```bash
+kubectl apply -f manifests/workloads/emmanuel_services-app.yaml
+```
+
+**Result**  
+You have a live workload in Kubernetes emitting observable data for testing.
+
+---
+
+## 4. Set Up Local Splunk (Optional for Dev/Test)
+
+**Action**
+
+### Steps
+1. Pull and run the Splunk Docker image:
+```bash
+docker pull splunk/splunk:latest
+docker run -d --name splunk -p 8000:8000 -p 8088:8088 \
+  -e SPLUNK_START_ARGS=--accept-license \
+  -e SPLUNK_PASSWORD=changeme123 \
+  splunk/splunk:latest
+```
+
+2. Access Splunk Web UI:
+- URL: http://localhost:8000
+- Login: `admin / changeme123`
+
+**Result**  
+You now have a local Splunk instance to test telemetry pipelines without cloud dependency.
+
+---
+
+## 5. Connect OpenTelemetry to Splunk
+
+**Action**
+
+### Steps
+1. Edit `values.yaml` for either local or cloud Splunk:
+```yaml
+exporters:
+  splunk_hec:
+    token: YOUR_HEC_TOKEN
+    endpoint: http://host.docker.internal:8088/services/collector
+    source: otel-collector
+    sourcetype: _json
+```
+
+2. Upgrade Helm release to apply changes:
+```bash
+helm upgrade otel-collector -f helm/otel-collector/values.yaml open-telemetry/opentelemetry-collector
+```
+
+**Result**  
+Your observability pipeline is now connected to Splunk for real-time metrics and tracing.
+
+---
+
+## 6. View Metrics and Traces in Splunk
+
+**Action**
+
+### Steps
+1. Log in to Splunk Observability Cloud or local instance
+2. Navigate to APM and Infrastructure dashboards
+3. Verify the presence of trace spans and metrics
+
+**Result**  
+You can now visualize system health, trace performance issues, and explore telemetry in Splunk.
+
+---
+
+## 7. Enable GitOps with ArgoCD (Optional)
+
+**Action**
+
+### Steps
+1. Prepare your Helm charts and manifests
+2. Install ArgoCD:
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+3. Access ArgoCD UI:
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+- URL: https://localhost:8080
+
+4. Add your Git repository and sync workloads
+
+**Result**  
+You have now set up a GitOps workflow to manage your observability stack declaratively.
+
+---
+
+## Final Result
+
+You now have:
+- A fully provisioned EKS cluster using Terraform
+- OpenTelemetry deployed and configured for trace and metric collection
+- Splunk integrated for APM and infrastructure dashboards
+- GitOps-ready configuration using ArgoCD
+- Optional local Splunk setup for testing and validation
+
+---
+
+## Next Steps
+
+- [ ] Integrate GitHub Actions for full CI/CD automation
+- [ ] Add OpenTelemetry SDKs to microservices (e.g., Node.js, Python)
+- [ ] Configure Splunk detectors and alerting
+- [ ] Expand dashboards with SLOs, error rates, and latency indicators
+
+---
+
 ## Author
 
 **Emmanuel Naweji**  
 📍 Crooks, SD  
 🔗 [LinkedIn](https://linkedin.com/in/ready2assist) | [GitHub](https://github.com/Here2ServeU)  
 📧 Email: emmanuelnt02@gmail.com
-
-> Feel free to fork this project or reach out if you'd like to collaborate on similar observability tooling!
 
